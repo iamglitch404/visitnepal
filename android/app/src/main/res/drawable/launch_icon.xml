@@ -1,0 +1,93 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Squircle Badge Background -->
+    <path
+        android:pathData="M144,32 L368,32 A112,112 0 0,1 480,144 L480,368 A112,112 0 0,1 368,480 L144,480 A112,112 0 0,1 32,368 L32,144 A112,112 0 0,1 144,32 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="0"
+                android:startY="0"
+                android:endX="512"
+                android:endY="512"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#2563EB" />
+                <item android:offset="0.5" android:color="#1D4ED8" />
+                <item android:offset="1.0" android:color="#1E3A8A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Badge Inner Border -->
+    <path
+        android:strokeColor="#2EFFFFFF"
+        android:strokeWidth="4"
+        android:pathData="M144,32 L368,32 A112,112 0 0,1 480,144 L480,368 A112,112 0 0,1 368,480 L144,480 A112,112 0 0,1 32,368 L32,144 A112,112 0 0,1 144,32 Z" />
+
+    <!-- Rising Dawn Sun -->
+    <path
+        android:pathData="M256,128 A76,76 0 1,0 256,280 A76,76 0 1,0 256,128 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="256"
+                android:startY="128"
+                android:endX="256"
+                android:endY="280"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FCD34D" />
+                <item android:offset="1.0" android:color="#F59E0B" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Left Peak - Lit Face -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M120,380 L200,224 L200,380 Z" />
+
+    <!-- Left Peak - Shadow Face -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M200,224 L200,380 L280,380 Z" />
+
+    <!-- Left Peak - Snow Cap -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M200,224 L175,272 L195,268 L200,278 L210,266 L225,272 Z" />
+
+    <!-- Right Ridge Accent -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M310,400 L370,270 L420,400 Z" />
+
+    <!-- Main Majestic Peak - Lit Face -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M170,400 L284,148 L284,400 Z" />
+
+    <!-- Main Majestic Peak - Shadow Face -->
+    <path
+        android:fillColor="#64748B"
+        android:pathData="M284,148 L284,400 L410,400 Z" />
+
+    <!-- Center Main Snow Cap -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M284,148 L248,220 L274,212 L284,228 L300,210 L326,220 Z" />
+
+    <!-- Summit Flare / Star -->
+    <path
+        android:fillColor="#FDE047"
+        android:pathData="M284,124 L288,140 L304,144 L288,148 L284,164 L280,148 L264,144 L280,140 Z" />
+
+    <!-- Base Curve Accent -->
+    <path
+        android:strokeColor="#50FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M128,416 Q256,432 384,416" />
+</vector>
