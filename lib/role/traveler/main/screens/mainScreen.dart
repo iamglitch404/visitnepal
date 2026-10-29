@@ -86,12 +86,9 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           if (isDesktop) _buildDesktopSidebar(theme) else if (isTablet) _buildTabletNavigationRail(theme),
           Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              transitionBuilder: (child, animation) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              child: tabs[_selectedIndex],
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: tabs,
             ),
           ),
         ],

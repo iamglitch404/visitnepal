@@ -15,20 +15,295 @@ class GuideTab extends StatefulWidget {
 }
 
 class _GuideTabState extends State<GuideTab> {
-  int _selectedDay = 25;
-  final int _todayDay = 26;
+  late DateTime _selectedDate;
+  late DateTime _currentMonth;
+  final DateTime _today = DateTime.now();
   int _activeSubTab = 0;
+  bool _isMonthGridView = false;
+  final ScrollController _calendarScrollController = ScrollController();
 
-  final List<Map<String, dynamic>> _calendarDays = [
-    {'weekday': 'Sa', 'day': 24},
-    {'weekday': 'Su', 'day': 25},
-    {'weekday': 'Mo', 'day': 26},
-    {'weekday': 'Tu', 'day': 27},
-    {'weekday': 'We', 'day': 28},
-    {'weekday': 'Th', 'day': 29},
-    {'weekday': 'Fr', 'day': 30},
-    {'weekday': 'Sa', 'day': 31},
+  static const List<String> _weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+  static const List<String> _months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = _today;
+    _currentMonth = DateTime(_today.year, _today.month, 1);
+  }
+
+  @override
+  void dispose() {
+    _calendarScrollController.dispose();
+    super.dispose();
+  }
+
+  List<DateTime> get _availableMonths {
+    return List.generate(
+      8,
+      (i) => DateTime(_today.year, _today.month + i, 1),
+    );
+  }
+
+  List<DateTime> get _daysInCurrentMonth {
+    final daysInMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
+    return List.generate(
+      daysInMonth,
+      (index) => DateTime(_currentMonth.year, _currentMonth.month, index + 1),
+    );
+  }
+
+  String get _monthYearTitle => '${_months[_currentMonth.month - 1]} ${_currentMonth.year}';
+
+  void _onPrevDay() {
+    setState(() {
+      final prevDate = _selectedDate.subtract(const Duration(days: 1));
+      _selectedDate = prevDate;
+      if (prevDate.month != _currentMonth.month || prevDate.year != _currentMonth.year) {
+        _currentMonth = DateTime(prevDate.year, prevDate.month, 1);
+      }
+    });
+    _scrollToSelectedDate();
+  }
+
+  void _onNextDay() {
+    setState(() {
+      final nextDate = _selectedDate.add(const Duration(days: 1));
+      _selectedDate = nextDate;
+      if (nextDate.month != _currentMonth.month || nextDate.year != _currentMonth.year) {
+        _currentMonth = DateTime(nextDate.year, nextDate.month, 1);
+      }
+    });
+    _scrollToSelectedDate();
+  }
+
+  void _selectMonth(int month, int year) {
+    setState(() {
+      _currentMonth = DateTime(year, month, 1);
+      final maxDays = DateTime(year, month + 1, 0).day;
+      final targetDay = _selectedDate.day.clamp(1, maxDays);
+      _selectedDate = DateTime(year, month, targetDay);
+    });
+    _scrollToSelectedDate();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2025, 1, 1),
+      lastDate: DateTime(2028, 12, 31),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _currentMonth = DateTime(picked.year, picked.month, 1);
+      });
+      _scrollToSelectedDate();
+    }
+  }
+
+  void _scrollToSelectedDate() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_calendarScrollController.hasClients) {
+        final index = _selectedDate.day - 1;
+        const itemWidth = 44.0;
+        final screenWidth = MediaQuery.of(context).size.width;
+        final targetOffset = (index * itemWidth) - (screenWidth / 2) + (itemWidth / 2);
+        final maxScroll = _calendarScrollController.position.maxScrollExtent;
+        final clampedOffset = targetOffset.clamp(0.0, maxScroll);
+        _calendarScrollController.animateTo(
+          clampedOffset,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  String _getHotelTitle(DateTime date) {
+    if (date.month == 11) {
+      if (date.day >= 12 && date.day <= 14) {
+        return 'Yeti Mountain Lodge, Phakding';
+      } else if (date.day >= 15 && date.day <= 22) {
+        return 'Panorama Lodge & Sherpa Heritage, Namche';
+      } else {
+        return "The Dwarika's Hotel - Heritage Suite";
+      }
+    }
+    return 'Kathmandu Marriott Hotel';
+  }
+
+  String _getHotelImage(DateTime date) {
+    if (date.month == 11) {
+      if (date.day >= 12) {
+        return 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=400&q=80';
+      }
+      return 'https://images.unsplash.com/photo-1518002171953-a080ee817e1f?auto=format&fit=crop&w=400&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80';
+  }
+
+  Widget _buildMonthPill(int month, int year, String label, bool isDark) {
+    final isCurrent = _currentMonth.month == month && _currentMonth.year == year;
+    return GestureDetector(
+      onTap: () => _selectMonth(month, year),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isCurrent
+              ? const Color(0xFF2563EB)
+              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isCurrent
+                ? const Color(0xFF2563EB)
+                : (isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+            color: isCurrent
+                ? Colors.white
+                : (isDark ? Colors.white70 : const Color(0xFF64748B)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthGrid(bool isDark) {
+    final firstWeekday = DateTime(_currentMonth.year, _currentMonth.month, 1).weekday; // 1 = Mon, 7 = Sun
+    final leadingPadding = firstWeekday - 1;
+    final daysInMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
+    final totalCells = leadingPadding + daysInMonth;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: _weekdays.map((w) {
+              return SizedBox(
+                width: 32,
+                child: Text(
+                  w,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 10),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: totalCells,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
+              childAspectRatio: 1.05,
+            ),
+            itemBuilder: (context, index) {
+              if (index < leadingPadding) {
+                return const SizedBox.shrink();
+              }
+              final dayNum = index - leadingPadding + 1;
+              final cellDate = DateTime(_currentMonth.year, _currentMonth.month, dayNum);
+              final isSelected = cellDate.year == _selectedDate.year &&
+                  cellDate.month == _selectedDate.month &&
+                  cellDate.day == _selectedDate.day;
+              final isToday = cellDate.year == _today.year &&
+                  cellDate.month == _today.month &&
+                  cellDate.day == _today.day;
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedDate = cellDate;
+                  });
+                  _scrollToSelectedDate();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF2563EB)
+                        : (isToday
+                            ? (isDark ? const Color(0xFF334155) : const Color(0xFFFEF3C7))
+                            : Colors.transparent),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF2563EB)
+                          : (isToday ? const Color(0xFFF59E0B) : (isDark ? Colors.white10 : const Color(0xFFF1F5F9))),
+                      width: isToday || isSelected ? 1.4 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$dayNum',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: (isSelected || isToday) ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : (isToday
+                                  ? const Color(0xFFD97706)
+                                  : (isDark ? Colors.white : const Color(0xFF0F172A))),
+                        ),
+                      ),
+                      if (cellDate.month == 11 && cellDate.day >= 12 && cellDate.day <= 25) ...[
+                        const SizedBox(height: 2),
+                        Container(
+                          width: 3.5,
+                          height: 3.5,
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.white : const Color(0xFF16A34A),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showAddCompanionDialog() {
     showDialog(
@@ -107,13 +382,13 @@ class _GuideTabState extends State<GuideTab> {
               leading: const Icon(Icons.access_time_filled_rounded, color: Color(0xFF16A34A)),
               title: const Text('Departure Alarm: 06:00 AM', style: TextStyle(fontWeight: FontWeight.w600)),
               subtitle: const Text('Triggered 30 mins before Lukla / trail departure'),
-              trailing: Switch(value: true, activeColor: const Color(0xFF16A34A), onChanged: (_) {}),
+              trailing: Switch(value: true, activeThumbColor: const Color(0xFF16A34A), onChanged: (_) {}),
             ),
             ListTile(
               leading: const Icon(Icons.air_rounded, color: Color(0xFF2563EB)),
               title: const Text('Acclimatization Check: 01:00 PM', style: TextStyle(fontWeight: FontWeight.w600)),
               subtitle: const Text('Check oxygen saturation & water hydration'),
-              trailing: Switch(value: true, activeColor: const Color(0xFF2563EB), onChanged: (_) {}),
+              trailing: Switch(value: true, activeThumbColor: const Color(0xFF2563EB), onChanged: (_) {}),
             ),
             const SizedBox(height: 16),
           ],
@@ -136,27 +411,49 @@ class _GuideTabState extends State<GuideTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Month Title & Quick Actions
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'October 2026',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : const Color(0xFF1E3A8A),
-                      letterSpacing: -0.2,
+                  InkWell(
+                    onTap: _pickDate,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _monthYearTitle,
+                            style: TextStyle(
+                              fontSize: 16.5,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF1E3A8A),
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: isDark ? Colors.white70 : const Color(0xFF2563EB),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.calendar_month_outlined, color: Color(0xFF2563EB), size: 20),
+                        icon: Icon(
+                          _isMonthGridView ? Icons.view_week_rounded : Icons.calendar_month_rounded,
+                          color: const Color(0xFF2563EB),
+                          size: 20,
+                        ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                        onPressed: () {
-                          AppFeedback.showInfo(context, 'Calendar view selected');
-                        },
+                        tooltip: _isMonthGridView ? 'Switch to Day Strip' : 'View Full Month Calendar',
+                        onPressed: () => setState(() => _isMonthGridView = !_isMonthGridView),
                       ),
                       IconButton(
                         icon: const Icon(Icons.person_add_alt_1_outlined, color: Color(0xFF2563EB), size: 20),
@@ -168,21 +465,13 @@ class _GuideTabState extends State<GuideTab> {
                         icon: Icon(Icons.chevron_left_rounded, color: isDark ? Colors.white60 : const Color(0xFF94A3B8), size: 22),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 28, minHeight: 32),
-                        onPressed: () {
-                          setState(() {
-                            if (_selectedDay > 24) _selectedDay--;
-                          });
-                        },
+                        onPressed: _onPrevDay,
                       ),
                       IconButton(
                         icon: Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white60 : const Color(0xFF94A3B8), size: 22),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 28, minHeight: 32),
-                        onPressed: () {
-                          setState(() {
-                            if (_selectedDay < 31) _selectedDay++;
-                          });
-                        },
+                        onPressed: _onNextDay,
                       ),
                     ],
                   ),
@@ -191,85 +480,158 @@ class _GuideTabState extends State<GuideTab> {
 
               const SizedBox(height: 10),
 
-              SizedBox(
-                height: 48,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: _calendarDays.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 6),
-                  itemBuilder: (context, index) {
-                    final item = _calendarDays[index];
-                    final int dayNum = item['day'];
-                    final String weekday = item['weekday'];
-                    final bool isSelected = dayNum == _selectedDay;
-                    final bool isToday = dayNum == _todayDay;
+              // Dynamic Real Month Pills Selector
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    for (final m in _availableMonths) ...[
+                      _buildMonthPill(m.month, m.year, '${_months[m.month - 1]} ${m.year}', isDark),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
 
-                    if (isSelected) {
+              const SizedBox(height: 12),
+
+              // Real Calendar: Toggle between Full Month Grid and Horizontal Day Strip
+              if (_isMonthGridView)
+                _buildMonthGrid(isDark)
+              else
+                SizedBox(
+                  height: 52,
+                  child: ListView.separated(
+                    controller: _calendarScrollController,
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _daysInCurrentMonth.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 6),
+                    itemBuilder: (context, index) {
+                      final date = _daysInCurrentMonth[index];
+                      final int dayNum = date.day;
+                      final String weekday = _weekdays[date.weekday - 1];
+                      final bool isSelected = date.year == _selectedDate.year &&
+                          date.month == _selectedDate.month &&
+                          date.day == _selectedDate.day;
+                      final bool isToday = date.year == _today.year &&
+                          date.month == _today.month &&
+                          date.day == _today.day;
+
+                      if (isSelected) {
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedDate = date),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: 38,
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2563EB),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  weekday,
+                                  style: const TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  '$dayNum',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Container(
+                                  width: 3,
+                                  height: 3,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      if (isToday) {
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedDate = date),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: 38,
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFFF59E0B),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  weekday,
+                                  style: const TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFD97706),
+                                  ),
+                                ),
+                                Text(
+                                  '$dayNum',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFD97706),
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Container(
+                                  width: 3,
+                                  height: 3,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF59E0B),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
                       return GestureDetector(
-                        onTap: () => setState(() => _selectedDay = dayNum),
+                        onTap: () => setState(() => _selectedDate = date),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
-                          width: 36,
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2563EB),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF2563EB).withValues(alpha: 0.3),
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                weekday,
-                                style: const TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              Text(
-                                '$dayNum',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              Container(
-                                width: 2.5,
-                                height: 2.5,
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    if (isToday) {
-                      return GestureDetector(
-                        onTap: () => setState(() => _selectedDay = dayNum),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          width: 36,
+                          width: 38,
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           decoration: BoxDecoration(
                             color: isDark ? const Color(0xFF1E293B) : Colors.white,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: const Color(0xFFF59E0B),
-                              width: 1.2,
+                              color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+                              width: 1,
                             ),
                           ),
                           child: Column(
@@ -277,82 +639,34 @@ class _GuideTabState extends State<GuideTab> {
                             children: [
                               Text(
                                 weekday,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 9.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFD97706),
+                                  fontWeight: FontWeight.w400,
+                                  color: isDark ? Colors.white54 : const Color(0xFF64748B),
                                 ),
                               ),
                               Text(
                                 '$dayNum',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFD97706),
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              Container(
-                                width: 2.5,
-                                height: 2.5,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFF59E0B),
-                                  shape: BoxShape.circle,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       );
-                    }
-
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedDay = dayNum),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        width: 36,
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              weekday,
-                              style: TextStyle(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w400,
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                              ),
-                            ),
-                            Text(
-                              '$dayNum',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                    },
+                  ),
                 ),
-              ),
 
               const SizedBox(height: 16),
 
-              const ScheduleHotelBanner(
-                title: 'Kathmandu Marriott Hotel',
+              ScheduleHotelBanner(
+                title: _getHotelTitle(_selectedDate),
                 subtitle: 'Location to Explore Today',
-                imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80',
+                imageUrl: _getHotelImage(_selectedDate),
               ),
 
               const SizedBox(height: 16),
@@ -551,7 +865,10 @@ class _GuideTabState extends State<GuideTab> {
 
                 const SizedBox(height: 32),
               ] else ...[
-                ScheduleTimelineView(selectedDay: _selectedDay),
+                ScheduleTimelineView(
+                  selectedDay: _selectedDate.day,
+                  selectedDate: _selectedDate,
+                ),
               ],
             ],
           ),

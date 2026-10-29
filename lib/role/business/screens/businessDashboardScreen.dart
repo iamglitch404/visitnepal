@@ -81,36 +81,28 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                 child: GestureDetector(
                   onTap: () => setState(() => _selectedIndex = index),
                   behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? activeColor.withValues(alpha: isDark ? 0.15 : 0.08)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                  child: Container(
+                    color: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         AnimatedScale(
                           duration: const Duration(milliseconds: 180),
                           curve: Curves.easeOutBack,
-                          scale: isSelected ? 1.1 : 1.0,
+                          scale: isSelected ? 1.05 : 1.0,
                           child: Icon(
                             icon,
-                            size: 17,
+                            size: 20,
                             color: isSelected ? activeColor : inactiveColor,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
                           label,
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                            fontSize: 10.5,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                             color: isSelected ? activeColor : inactiveColor,
                             letterSpacing: -0.2,
                           ),

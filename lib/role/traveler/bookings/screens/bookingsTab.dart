@@ -1,8 +1,8 @@
+import 'dart:ui' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import '../../../../core/data/mockData.dart';
-import '../../../../core/widgets/designSystem.dart';
-import '../../chat/screens/chatScreen.dart';
 import '../widgets/bookingItemCard.dart';
+import 'bookingDetailScreen.dart';
 
 class BookingsTab extends StatefulWidget {
   final VoidCallback? onNavigateToChat;
@@ -15,144 +15,53 @@ class BookingsTab extends StatefulWidget {
 }
 
 class _BookingsTabState extends State<BookingsTab> {
-  String _selectedStatus = 'Booked';
+  int _selectedTabIndex = 0; // 0: Booked, 1: History
   String _searchQuery = '';
   final TextEditingController _searchCtrl = TextEditingController();
+  late PageController _pageController;
 
-  final List<String> _tabs = ['Booked', 'Completed', 'Cancelled'];
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedTabIndex);
+  }
 
   @override
   void dispose() {
+    _pageController.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  void _showVoucherDialog(BuildContext context, Map<String, dynamic> booking) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final Color color = booking['color'] as Color? ?? theme.colorScheme.primary;
+  void _onTabChanged(int index) {
+    if (_selectedTabIndex != index) {
+      setState(() {
+        _selectedTabIndex = index;
+      });
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        contentPadding: const EdgeInsets.all(20),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(booking['icon'] as IconData? ?? Icons.confirmation_number, color: color, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(booking['category'] ?? 'Expedition', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold)),
-                      Text(booking['id'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
-                    ],
-                  ),
-                ),
-                AppStatusChip(status: booking['status'] ?? 'Confirmed'),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-            Text(
-              booking['title'] ?? '',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Provider: ${booking['provider']}',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
-            ),
-
-            const SizedBox(height: 20),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.black12),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.qr_code_2_rounded, size: 140, color: Colors.black87),
-                  const SizedBox(height: 6),
-                  Text(
-                    booking['qrCode'] ?? 'VERIFIED-BOOKING',
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Meeting Location:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                Text(booking['meetingPoint'] ?? 'Kathmandu Hotel', style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Assigned Guide:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                Text(booking['assignedGuide'] ?? 'Pasang Nuru', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Contact Emergency:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                Text(booking['contactPhone'] ?? '+977 9841234567', style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    text: 'Contact Guide',
-                    variant: AppButtonVariant.outline,
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen()));
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: AppButton(
-                    text: 'Done',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+  void _openBookingDetails(BuildContext context, Map<String, dynamic> booking) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => BookingDetailScreen(booking: booking),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOutCubic;
+          final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 320),
       ),
     );
   }
@@ -162,107 +71,289 @@ class _BookingsTabState extends State<BookingsTab> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final bookings = MockData.userBookings.where((b) {
-      final status = (b['status'] as String? ?? '').toLowerCase();
-      bool matchesTab = false;
-      if (_selectedStatus == 'Booked') {
-        matchesTab = status.contains('confirmed') || status.contains('booked');
-      } else if (_selectedStatus == 'Completed') {
-        matchesTab = status.contains('completed');
-      } else {
-        matchesTab = status.contains('cancel');
-      }
+    final allBookings = MockData.userBookings;
+    final query = _searchQuery.toLowerCase();
 
-      final query = _searchQuery.toLowerCase();
+    final bookedList = allBookings.where((b) {
+      final status = (b['status'] as String? ?? '').toLowerCase();
+      final isBooked = status.contains('confirmed') || status.contains('booked');
       final matchesQuery = query.isEmpty ||
           (b['title'] as String).toLowerCase().contains(query) ||
           (b['id'] as String).toLowerCase().contains(query);
+      return isBooked && matchesQuery;
+    }).toList();
 
-      return matchesTab && matchesQuery;
+    final historyList = allBookings.where((b) {
+      final status = (b['status'] as String? ?? '').toLowerCase();
+      final isHistory = status.contains('completed') || status.contains('cancel');
+      final matchesQuery = query.isEmpty ||
+          (b['title'] as String).toLowerCase().contains(query) ||
+          (b['id'] as String).toLowerCase().contains(query);
+      return isHistory && matchesQuery;
     }).toList();
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'My Bookings & Vouchers',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Access confirmed expeditions, teahouse check-in QR passes & receipts',
-                style: TextStyle(fontSize: 11.5, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
-              ),
-
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _searchCtrl,
-                onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                decoration: InputDecoration(
-                  hintText: 'Search by booking code or title...',
-                  hintStyle: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        bottom: false,
+        child: Column(
+          children: [
+            // 1. Header Bar: Title "My Booking"
+            Padding(
+              padding: const EdgeInsets.only(top: 14, left: 16, right: 16, bottom: 8),
+              child: Center(
+                child: Text(
+                  'My Booking',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 16),
-
-              Row(
-                children: _tabs.map((tab) {
-                  final isSelected = _selectedStatus == tab;
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedStatus = tab),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? theme.colorScheme.primary
-                              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                          borderRadius: BorderRadius.circular(12),
+            // 2. Search Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFAFAFA),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.search_rounded,
+                      size: 20,
+                      color: Color(0xFF94A3B8),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchCtrl,
+                        onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          tab,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                        decoration: const InputDecoration(
+                          hintText: 'Search...',
+                          hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF94A3B8),
                           ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
                         ),
                       ),
                     ),
-                  );
-                }).toList(),
+                    if (_searchQuery.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          _searchCtrl.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.only(right: 6),
+                          child: Icon(Icons.close_rounded, size: 18, color: Color(0xFF94A3B8)),
+                        ),
+                      ),
+                    const Icon(
+                      Icons.tune_rounded,
+                      size: 20,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ],
+                ),
               ),
+            ),
 
-              const SizedBox(height: 20),
+            // 3. Segmented Tabs: "Booked" vs "History" (Smooth Sliding Pill Indicator)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: AnimatedBuilder(
+                  animation: _pageController,
+                  builder: (context, _) {
+                    double page = _selectedTabIndex.toDouble();
+                    if (_pageController.hasClients && _pageController.position.hasContentDimensions) {
+                      page = _pageController.page ?? page;
+                    }
+                    final clampedPage = page.clamp(0.0, 1.0);
+                    final alignX = (clampedPage * 2.0) - 1.0;
+                    final bookedT = 1.0 - clampedPage;
+                    final historyT = clampedPage;
+                    final activeColor = isDark ? Colors.white : const Color(0xFF0F172A);
+                    const inactiveColor = Color(0xFF94A3B8);
 
-              if (bookings.isEmpty)
-                AppEmptyState(
-                  title: 'No $_selectedStatus Bookings',
-                  message: 'You have no $_selectedStatus bookings at this time.',
-                )
-              else
-                ...bookings.map((b) => BookingItemCard(
-                      booking: b,
-                      onTap: () => _showVoucherDialog(context, b),
-                    )),
-            ],
-          ),
+                    return Stack(
+                      children: [
+                        // Smooth Sliding White Pill Indicator
+                        Align(
+                          alignment: Alignment(alignX, 0.0),
+                          child: FractionallySizedBox(
+                            widthFactor: 0.5,
+                            heightFactor: 1.0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF334155) : Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Tap Targets & Labels
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _onTabChanged(0),
+                                behavior: HitTestBehavior.opaque,
+                                child: Center(
+                                  child: Text(
+                                    'Booked',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: bookedT > 0.5 ? FontWeight.w700 : FontWeight.w500,
+                                      color: Color.lerp(inactiveColor, activeColor, bookedT),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _onTabChanged(1),
+                                behavior: HitTestBehavior.opaque,
+                                child: Center(
+                                  child: Text(
+                                    'History',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: historyT > 0.5 ? FontWeight.w700 : FontWeight.w500,
+                                      color: Color.lerp(inactiveColor, activeColor, historyT),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // 4. Content: Smooth Sliding Pages (PageView for Booked and History)
+            Expanded(
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  dragDevices: {
+                    PointerDeviceKind.touch,
+                    PointerDeviceKind.mouse,
+                    PointerDeviceKind.trackpad,
+                    PointerDeviceKind.stylus,
+                  },
+                ),
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    if (_selectedTabIndex != index) {
+                      setState(() {
+                        _selectedTabIndex = index;
+                      });
+                    }
+                  },
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _buildBookingsList(bookedList, isDark),
+                    _buildBookingsList(historyList, isDark),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildBookingsList(List<Map<String, dynamic>> list, bool isDark) {
+    if (list.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.bookmark_border_rounded,
+                size: 76,
+                color: isDark ? Colors.white24 : const Color(0xFFCBD5E1),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No bookings found',
+                style: TextStyle(
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "You don't have any bookings yet",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final b = list[index];
+        return BookingItemCard(
+          booking: b,
+          onTap: () => _openBookingDetails(context, b),
+        );
+      },
+    );
+  }
 }
+
+

@@ -3,19 +3,59 @@ import '../../../../core/data/mockData.dart';
 
 class ScheduleTimelineView extends StatelessWidget {
   final int selectedDay;
+  final DateTime? selectedDate;
 
   const ScheduleTimelineView({
     super.key,
     required this.selectedDay,
+    this.selectedDate,
   });
+
+  static const List<String> _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  List<Map<String, dynamic>> _getEvents(DateTime date) {
+    final monthShort = _months[date.month - 1];
+    final datePattern = '$monthShort ${date.day}';
+
+    for (final s in MockData.scheduleDays) {
+      final sDate = s['date'] as String? ?? '';
+      if (sDate.contains(datePattern)) {
+        return List<Map<String, dynamic>>.from(s['events'] ?? []);
+      }
+    }
+
+    if (date.month == 11) {
+      if (date.day >= 12 && date.day <= 25) {
+        return [
+          {'time': '07:00 AM', 'title': 'Himalayan Trek Breakfast & Briefing', 'desc': 'Oxygen check & trail preparation with guide'},
+          {'time': '08:30 AM', 'title': 'Morning Alpine Ascent', 'desc': 'Trail segment with panoramic mountain vistas'},
+          {'time': '01:00 PM', 'title': 'Tea House Rest Stop', 'desc': 'Warm sherpa herbal tea & acclimatization pause'},
+          {'time': '05:30 PM', 'title': 'Camp Arrival & Sunset View', 'desc': 'Golden hour photography over Himalayan peaks'},
+        ];
+      }
+    }
+
+    return [
+      {'time': '08:00 AM', 'title': 'Morning City & Heritage Walk', 'desc': 'Explore local alleys, stupas, and artisan cafes'},
+      {'time': '11:30 AM', 'title': 'Expedition Gear & Permit Check', 'desc': 'Review trek essentials with Himalayan Sherpa team'},
+      {'time': '02:00 PM', 'title': 'Cultural Landmark Visit', 'desc': 'Boudhanath Stupa / Swayambhunath temple visit'},
+      {'time': '06:30 PM', 'title': 'Traditional Nepali Dinner', 'desc': 'Authentic Thakali dal bhat & cultural music'},
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final scheduleDays = MockData.scheduleDays;
-    final events = List<Map<String, dynamic>>.from(scheduleDays[0]['events'] ?? []);
+    final date = selectedDate ?? DateTime.now();
+    final events = _getEvents(date);
+    final titleText = selectedDate != null
+        ? 'Timeline Events for ${_months[date.month - 1]} ${date.day}'
+        : 'Timeline Events for ${_months[date.month - 1]} ${date.day}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -24,7 +64,7 @@ class ScheduleTimelineView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Timeline Events for Day $selectedDay',
+              titleText,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
