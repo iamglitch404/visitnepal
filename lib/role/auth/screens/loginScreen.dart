@@ -3,9 +3,11 @@ import '../../../core/data/mockData.dart';
 import '../../../core/widgets/designSystem.dart';
 import '../../traveler/main/screens/mainScreen.dart';
 import '../../business/screens/businessDashboardScreen.dart';
+import '../../guide/screens/guideDashboardScreen.dart';
+import '../../butler/screens/butlerDashboardScreen.dart';
 import '../../admin/screens/adminDashboardScreen.dart';
 
-enum UserRole { traveler, business, admin }
+enum UserRole { traveler, business, guide, butler, admin }
 
 class LoginScreen extends StatefulWidget {
   final UserRole initialRole;
@@ -34,6 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _phoneCtrl = TextEditingController();
   final TextEditingController _businessNameCtrl = TextEditingController();
   final TextEditingController _adminBadgeCtrl = TextEditingController();
+  final TextEditingController _guideLicenseCtrl = TextEditingController();
+  final TextEditingController _butlerLicenseCtrl = TextEditingController();
 
   // Step 3: Traveler Document Controllers
   final TextEditingController _nationalityCtrl = TextEditingController(text: 'United States');
@@ -42,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _bloodCtrl = TextEditingController(text: 'O+');
   String _visaType = 'On-Arrival Tourist Visa (30 Days)';
 
-  // Step 3: Business & Government Document Controllers (Nagarikta / NID)
+  // Step 3: Business, Guide, Butler & Government Document Controllers
   final TextEditingController _regCtrl = TextEditingController(text: 'CRO-9988221');
   final TextEditingController _panCtrl = TextEditingController(text: 'PAN-601234567');
   final TextEditingController _citizenshipCtrl = TextEditingController(text: 'NPL-27-01-78-01234');
@@ -96,6 +100,20 @@ class _LoginScreenState extends State<LoginScreen> {
         _phoneCtrl.text = '+977 9812345678';
         _businessNameCtrl.text = 'Himalayan Sherpa Expeditions Pvt. Ltd.';
         break;
+      case UserRole.guide:
+        _emailCtrl.text = 'pasang.sherpa@visitnepal.com';
+        _passwordCtrl.text = 'Pass@1234';
+        _nameCtrl.text = 'Pasang Nuru Sherpa';
+        _phoneCtrl.text = '+977 9801122334';
+        _guideLicenseCtrl.text = 'TAAN-NMA-GUIDE-8821';
+        break;
+      case UserRole.butler:
+        _emailCtrl.text = 'sherpa.butler@visitnepal.com';
+        _passwordCtrl.text = 'Pass@1234';
+        _nameCtrl.text = 'Tenzing Sherpa';
+        _phoneCtrl.text = '+977 9801122334';
+        _butlerLicenseCtrl.text = 'HERO-BUTLER-9921';
+        break;
       case UserRole.admin:
         _emailCtrl.text = 'officer@ntb.gov.np';
         _passwordCtrl.text = 'Pass@1234';
@@ -114,6 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneCtrl.dispose();
     _businessNameCtrl.dispose();
     _adminBadgeCtrl.dispose();
+    _guideLicenseCtrl.dispose();
+    _butlerLicenseCtrl.dispose();
     _nationalityCtrl.dispose();
     _passportCtrl.dispose();
     _emergencyCtrl.dispose();
@@ -160,14 +180,14 @@ class _LoginScreenState extends State<LoginScreen> {
             Text(
               _selectedRole == UserRole.admin
                   ? "Enter your NTB Officer Badge / Gov ID Number to receive password reset instructions."
-                  : "Enter your registered account email and we'll send password recovery instructions.",
+                  : "Enter your registered account email or phone to receive password recovery instructions.",
               style: const TextStyle(fontSize: 12.5, height: 1.35, color: Color(0xFF64748B)),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: resetEmailCtrl,
               decoration: InputDecoration(
-                labelText: _selectedRole == UserRole.admin ? 'Gov ID / Badge Number' : 'Account Email',
+                labelText: _selectedRole == UserRole.admin ? 'Gov ID / Badge Number' : 'Account Email or Phone',
                 prefixIcon: Icon(_selectedRole == UserRole.admin ? Icons.badge_outlined : Icons.email_outlined, size: 20),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -188,11 +208,11 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () {
               final textVal = resetEmailCtrl.text.trim();
               if (textVal.isEmpty) {
-                AppFeedback.showInfo(context, 'Please enter your ID/email.');
+                AppFeedback.showInfo(context, 'Please enter your ID/email/phone.');
                 return;
               }
               Navigator.pop(ctx);
-              AppFeedback.showSuccess(context, 'Password reset link sent to $textVal');
+              AppFeedback.showSuccess(context, 'Password reset instructions sent');
             },
             child: const Text('Send Reset Link'),
           ),
@@ -222,7 +242,12 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    if (_selectedRole != UserRole.admin && (email.isEmpty || !_isValidEmail(email))) {
+    if (_selectedRole == UserRole.guide && _guideLicenseCtrl.text.trim().isEmpty) {
+      AppFeedback.showInfo(context, 'NMA / TAAN Mountain Guide License # is required.');
+      return;
+    }
+
+    if (email.isEmpty || !_isValidEmail(email)) {
       AppFeedback.showInfo(context, 'Valid Email Address is required.');
       return;
     }
@@ -278,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleStep3SaveDocs() {
     if (_selectedRole == UserRole.business) {
       if (_citizenshipCtrl.text.trim().isEmpty) {
-        AppFeedback.showInfo(context, 'NID (National ID) or Nagarikta Number is required to verify business owner.');
+        AppFeedback.showInfo(context, 'NID (National ID) or Nagarikta Number is required.');
         return;
       }
       if (_regCtrl.text.trim().isEmpty || _panCtrl.text.trim().isEmpty) {
@@ -290,6 +315,40 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const BusinessDashboardScreen()),
+        (route) => false,
+      );
+      return;
+    }
+
+    if (_selectedRole == UserRole.guide) {
+      if (_guideLicenseCtrl.text.trim().isEmpty) {
+        AppFeedback.showInfo(context, 'NMA / TAAN Guide License Number is required.');
+        return;
+      }
+
+      AppFeedback.showSuccess(context, 'Certified Mountain Guide Credentials Verified!');
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const GuideDashboardScreen()),
+        (route) => false,
+      );
+      return;
+    }
+
+    if (_selectedRole == UserRole.butler) {
+      if (_butlerLicenseCtrl.text.trim().isEmpty) {
+        AppFeedback.showInfo(context, 'Sherpa Butler License Number is required for verification.');
+        return;
+      }
+      if (_citizenshipCtrl.text.trim().isEmpty) {
+        AppFeedback.showInfo(context, 'NID (National ID) or Nagarikta Number is required for verification.');
+        return;
+      }
+
+      AppFeedback.showSuccess(context, 'Sherpa Butler License & NID/Nagarikta Verified!');
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const ButlerDashboardScreen()),
         (route) => false,
       );
       return;
@@ -354,7 +413,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Standard Sign In Validation
+    // Sign In Validation
     final password = _passwordCtrl.text.trim();
 
     if (_selectedRole == UserRole.admin) {
@@ -377,9 +436,36 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final email = _emailCtrl.text.trim();
-    if (email.isEmpty || !_isValidEmail(email)) {
-      AppFeedback.showInfo(context, 'Please enter a valid email address.');
+    if (_selectedRole == UserRole.business) {
+      final busName = _businessNameCtrl.text.trim();
+      final busEmail = _emailCtrl.text.trim();
+
+      if (busName.isEmpty) {
+        AppFeedback.showInfo(context, 'Please enter your Registered Business Name.');
+        return;
+      }
+      if (busEmail.isEmpty) {
+        AppFeedback.showInfo(context, 'Please enter your Registered Business Email.');
+        return;
+      }
+      if (password.isEmpty) {
+        AppFeedback.showInfo(context, 'Please enter your password.');
+        return;
+      }
+
+      AppFeedback.showSuccess(context, 'Welcome to Business Partner Portal ($busName)');
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const BusinessDashboardScreen()),
+        (route) => false,
+      );
+      return;
+    }
+
+    // For Traveler, Guide, Butler: Email or Phone Number + Password (2 Fields Only)
+    final credential = _emailCtrl.text.trim();
+    if (credential.isEmpty) {
+      AppFeedback.showInfo(context, 'Please enter your Email Address or Phone Number.');
       return;
     }
 
@@ -399,10 +485,22 @@ class _LoginScreenState extends State<LoginScreen> {
         break;
 
       case UserRole.business:
-        AppFeedback.showSuccess(context, 'Welcome to Business Partner Portal');
+        break;
+
+      case UserRole.guide:
+        AppFeedback.showSuccess(context, 'Welcome Pasang! Mountain Guide Dashboard Loaded');
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const BusinessDashboardScreen()),
+          MaterialPageRoute(builder: (_) => const GuideDashboardScreen()),
+          (route) => false,
+        );
+        break;
+
+      case UserRole.butler:
+        AppFeedback.showSuccess(context, 'Welcome Tenzing! Sherpa Butler Dashboard Loaded');
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const ButlerDashboardScreen()),
           (route) => false,
         );
         break;
@@ -468,23 +566,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'VISIT NEPAL',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'VISIT NEPAL',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
                         ),
-                      ),
-                      const Text(
-                        'Himalayan Travel & Portal',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                      ),
-                    ],
+                        const Text(
+                          'Himalayan Travel & Portal',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -500,8 +600,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? 'Verify Code'
                             : (_signUpStep == 3
                                 ? (_selectedRole == UserRole.business
-                                    ? 'Business & Nagarikta Verification'
-                                    : (_selectedRole == UserRole.admin ? 'Government Officer ID' : 'Tourist Travel Docs'))
+                                    ? 'Business Verification'
+                                    : (_selectedRole == UserRole.guide
+                                        ? 'Guide Accreditation'
+                                        : (_selectedRole == UserRole.butler
+                                            ? 'Butler Accreditation'
+                                            : (_selectedRole == UserRole.admin ? 'Government Officer ID' : 'Tourist Travel Docs'))))
                                 : 'Welcome to Nepal!')))
                     : 'Welcome Back',
                 style: TextStyle(
@@ -520,7 +624,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             : (_signUpStep == 3
                                 ? (_selectedRole == UserRole.business
                                     ? 'Step 3 of 3: Nagarikta / NID, Reg # & PAN'
-                                    : (_selectedRole == UserRole.admin ? 'Step 3 of 3: NTB Officer Badge & Gov ID' : 'Step 3 of 4: Passport & Tourist Verification'))
+                                    : (_selectedRole == UserRole.guide
+                                        ? 'Step 3 of 3: TAAN & NMA Guide License'
+                                        : (_selectedRole == UserRole.butler
+                                            ? 'Step 3 of 3: Sherpa Butler Accreditation'
+                                            : (_selectedRole == UserRole.admin ? 'Step 3 of 3: NTB Officer Badge & Gov ID' : 'Step 3 of 4: Passport & Tourist Verification'))))
                                 : 'Step 4 of 4: Tailor your Himalayan experiences')))
                     : 'Select your access role to continue',
                 style: TextStyle(
@@ -543,7 +651,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       stepNum: 3,
                       label: _selectedRole == UserRole.business
                           ? 'Nagarikta & PAN'
-                          : (_selectedRole == UserRole.admin ? 'Gov ID' : 'Passport'),
+                          : (_selectedRole == UserRole.guide
+                              ? 'Guide License'
+                              : (_selectedRole == UserRole.butler
+                                  ? 'Butler Badge'
+                                  : (_selectedRole == UserRole.admin ? 'Gov ID' : 'Passport'))),
                       activeStep: _signUpStep,
                       isDark: isDark,
                     ),
@@ -556,7 +668,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
               ],
 
-              // Role Selector Segmented Switcher (Shown in Sign In or Step 1)
+              // Role Selector Switcher Row
               if (!_isSignUp || _signUpStep == 1) ...[
                 Container(
                   padding: const EdgeInsets.all(4),
@@ -579,10 +691,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         activeColor: const Color(0xFF2563EB),
                       ),
                       _buildRoleChip(
+                        role: UserRole.guide,
+                        label: 'Guide',
+                        icon: Icons.terrain_rounded,
+                        activeColor: const Color(0xFF0D9488),
+                      ),
+                      _buildRoleChip(
+                        role: UserRole.butler,
+                        label: 'Butler',
+                        icon: Icons.room_service_rounded,
+                        activeColor: const Color(0xFF9333EA),
+                      ),
+                      _buildRoleChip(
                         role: UserRole.admin,
                         label: 'Admin',
                         icon: Icons.admin_panel_settings_rounded,
-                        activeColor: const Color(0xFF9333EA),
+                        activeColor: const Color(0xFF475569),
                       ),
                     ],
                   ),
@@ -605,6 +729,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 14),
                   ],
 
+                  if (_selectedRole == UserRole.guide) ...[
+                    _buildTextField(
+                      controller: _guideLicenseCtrl,
+                      label: 'TAAN / NMA Guide License # *',
+                      hint: 'TAAN-NMA-GUIDE-8821',
+                      icon: Icons.badge_outlined,
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
                   if (_selectedRole == UserRole.admin) ...[
                     _buildTextField(
                       controller: _adminBadgeCtrl,
@@ -618,30 +753,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   _buildTextField(
                     controller: _nameCtrl,
-                    label: _selectedRole == UserRole.business
-                        ? 'Proprietor / Manager Name *'
-                        : (_selectedRole == UserRole.admin ? 'Officer Full Name *' : 'Full Name *'),
-                    hint: _selectedRole == UserRole.admin ? 'Kritish Shrestha' : 'Aayush Pradhan',
+                    label: 'Full Name *',
+                    hint: _selectedRole == UserRole.butler ? 'Tenzing Sherpa' : (_selectedRole == UserRole.guide ? 'Pasang Nuru Sherpa' : (_selectedRole == UserRole.admin ? 'Kritish Shrestha' : 'Aayush Pradhan')),
                     icon: Icons.person_outline_rounded,
                     isDark: isDark,
                   ),
                   const SizedBox(height: 14),
 
-                  if (_selectedRole != UserRole.admin) ...[
-                    _buildTextField(
-                      controller: _emailCtrl,
-                      label: 'Email Address *',
-                      hint: 'name@visitnepal.com',
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 14),
-                  ],
+                  _buildTextField(
+                    controller: _emailCtrl,
+                    label: 'Email Address *',
+                    hint: _selectedRole == UserRole.admin ? 'officer@ntb.gov.np' : 'name@visitnepal.com',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    isDark: isDark,
+                  ),
+                  const SizedBox(height: 14),
 
                   _buildTextField(
                     controller: _phoneCtrl,
-                    label: 'Contact Phone Number *',
+                    label: 'Phone Number *',
                     hint: '+977 9812345678',
                     icon: Icons.phone_outlined,
                     keyboardType: TextInputType.phone,
@@ -777,7 +908,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 // STEP 3: Role Documents Verification
                 if (_signUpStep == 3) ...[
                   if (_selectedRole == UserRole.business) ...[
-                    // Business Owner Legal Documents & Nagarikta / NID View
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -869,7 +999,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 14),
 
-                    // Upload Business Registration & Nagarikta / PAN Certificate Scan
                     GestureDetector(
                       onTap: () {
                         setState(() {
@@ -918,8 +1047,103 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                  ] else if (_selectedRole == UserRole.admin) ...[
-                    // Government Admin Officer ID Verification View
+                  ] else if (_selectedRole == UserRole.guide) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D9488).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF0D9488).withValues(alpha: 0.25)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.terrain_rounded, color: Color(0xFF0D9488), size: 24),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('TAAN & NMA Guide License Verification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                                SizedBox(height: 2),
+                                Text('Verified by Nepal Mountaineering Association & High Altitude Rescue.', style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    _buildTextField(
+                      controller: _guideLicenseCtrl,
+                      label: 'NMA / TAAN Guide License Number *',
+                      hint: 'TAAN-NMA-GUIDE-8821',
+                      icon: Icons.badge_outlined,
+                      isDark: isDark,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildTextField(
+                      controller: _citizenshipCtrl,
+                      label: 'Nepali Citizenship ID / Nagarikta Number *',
+                      hint: '27-01-78-01234',
+                      icon: Icons.verified_user_outlined,
+                      isDark: isDark,
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _docUploaded = !_docUploaded;
+                        });
+                        AppFeedback.showSuccess(context, _docUploaded ? 'NMA Guide Badge & Medical Cert uploaded!' : 'Document scan removed');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _docUploaded ? const Color(0xFF16A34A) : Colors.grey.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _docUploaded ? Icons.task_alt_rounded : Icons.cloud_upload_outlined,
+                              color: _docUploaded ? const Color(0xFF16A34A) : const Color(0xFF0D9488),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _docUploaded ? 'NMA Guide Badge & Medical Cert Uploaded ✓' : 'Upload NMA Guide Badge & Medical Cert',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: _docUploaded ? const Color(0xFF16A34A) : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                                    ),
+                                  ),
+                                  Text(
+                                    _docUploaded ? 'nma_guide_badge_8821.pdf (Verified)' : 'Tap to select photo scan or PDF',
+                                    style: TextStyle(fontSize: 10.5, color: isDark ? Colors.white54 : const Color(0xFF64748B)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ] else if (_selectedRole == UserRole.butler) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -929,7 +1153,103 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF9333EA), size: 24),
+                          Icon(Icons.room_service_rounded, color: Color(0xFF9333EA), size: 24),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Sherpa Butler & Hospitality License Verification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                                SizedBox(height: 2),
+                                Text('Verified for High-Altitude Luxury Hospitality & Tea Sommelier Service.', style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    _buildTextField(
+                      controller: _butlerLicenseCtrl,
+                      label: 'Sherpa Butler License Number *',
+                      hint: 'HERO-BUTLER-9921',
+                      icon: Icons.badge_outlined,
+                      isDark: isDark,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildTextField(
+                      controller: _citizenshipCtrl,
+                      label: 'NID (National ID) or Nagarikta Number *',
+                      hint: '27-01-78-01234',
+                      icon: Icons.verified_user_outlined,
+                      isDark: isDark,
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _docUploaded = !_docUploaded;
+                        });
+                        AppFeedback.showSuccess(context, _docUploaded ? 'Butler Badge & Hospitality Cert uploaded!' : 'Document scan removed');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _docUploaded ? const Color(0xFF16A34A) : Colors.grey.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _docUploaded ? Icons.task_alt_rounded : Icons.cloud_upload_outlined,
+                              color: _docUploaded ? const Color(0xFF16A34A) : const Color(0xFF9333EA),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _docUploaded ? 'Sherpa Butler Badge Uploaded ✓' : 'Upload Sherpa Butler Badge & Hospitality Cert',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: _docUploaded ? const Color(0xFF16A34A) : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                                    ),
+                                  ),
+                                  Text(
+                                    _docUploaded ? 'sherpa_butler_badge_9921.pdf (Verified)' : 'Tap to select photo scan or PDF',
+                                    style: TextStyle(fontSize: 10.5, color: isDark ? Colors.white54 : const Color(0xFF64748B)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ] else if (_selectedRole == UserRole.admin) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF475569).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF475569).withValues(alpha: 0.25)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF475569), size: 24),
                           SizedBox(width: 10),
                           Expanded(
                             child: Column(
@@ -967,7 +1287,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 14),
 
-                    // Upload Official Government ID Card Scan
                     GestureDetector(
                       onTap: () {
                         setState(() {
@@ -989,7 +1308,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Icon(
                               _docUploaded ? Icons.task_alt_rounded : Icons.cloud_upload_outlined,
-                              color: _docUploaded ? const Color(0xFF16A34A) : const Color(0xFF9333EA),
+                              color: _docUploaded ? const Color(0xFF16A34A) : const Color(0xFF475569),
                               size: 24,
                             ),
                             const SizedBox(width: 12),
@@ -1127,7 +1446,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 14),
 
-                    // Upload Passport Scan Button Card
                     GestureDetector(
                       onTap: () {
                         setState(() {
@@ -1252,15 +1570,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 if (_selectedRole == UserRole.business) ...[
                   _buildTextField(
                     controller: _businessNameCtrl,
-                    label: 'Business / Agency Name',
+                    label: 'Business / Agency Name *',
                     hint: 'Himalayan Sherpa Expeditions',
                     icon: Icons.business_rounded,
                     isDark: isDark,
                   ),
                   const SizedBox(height: 14),
-                ],
-
-                if (_selectedRole == UserRole.admin) ...[
+                  _buildTextField(
+                    controller: _emailCtrl,
+                    label: 'Registered Business Email Address *',
+                    hint: 'partner@himalayanexpeditions.com',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    isDark: isDark,
+                  ),
+                  const SizedBox(height: 14),
+                ] else if (_selectedRole == UserRole.admin) ...[
                   _buildTextField(
                     controller: _adminBadgeCtrl,
                     label: 'NTB Government Officer Badge / Gov ID Number *',
@@ -1272,10 +1597,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ] else ...[
                   _buildTextField(
                     controller: _emailCtrl,
-                    label: 'Email Address *',
-                    hint: 'name@visitnepal.com',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
+                    label: 'Email Address or Phone Number *',
+                    hint: 'name@visitnepal.com or +977 9841234567',
+                    icon: Icons.person_outline_rounded,
                     isDark: isDark,
                   ),
                   const SizedBox(height: 14),
@@ -1351,7 +1675,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             : (_signUpStep == 3
                                 ? (_selectedRole == UserRole.business
                                     ? 'Verify Business & Nagarikta →'
-                                    : (_selectedRole == UserRole.admin ? 'Verify NTB Officer Gov ID →' : 'Save Travel Documents →'))
+                                    : (_selectedRole == UserRole.guide
+                                        ? 'Verify Guide License →'
+                                        : (_selectedRole == UserRole.butler
+                                            ? 'Verify Butler Badge →'
+                                            : (_selectedRole == UserRole.admin ? 'Verify NTB Officer Gov ID →' : 'Save Travel Documents →'))))
                                 : 'Start Exploring Nepal 🚀')))
                     : 'Sign In as ${_getRoleTitle()}',
                 onPressed: _handleAuthenticate,
@@ -1484,7 +1812,7 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
           decoration: BoxDecoration(
             color: isSelected ? activeColor : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
@@ -1494,16 +1822,20 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Icon(
                 icon,
-                size: 16,
+                size: 14,
                 color: isSelected ? Colors.white : const Color(0xFF64748B),
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: isSelected ? Colors.white : const Color(0xFF64748B),
+              const SizedBox(width: 3),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                  ),
                 ),
               ),
             ],
@@ -1587,6 +1919,10 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Traveler';
       case UserRole.business:
         return 'Business Partner';
+      case UserRole.guide:
+        return 'Mountain Guide';
+      case UserRole.butler:
+        return 'Sherpa Butler';
       case UserRole.admin:
         return 'Government Admin';
     }

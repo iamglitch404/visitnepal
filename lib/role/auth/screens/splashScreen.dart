@@ -12,6 +12,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   late VideoPlayerController _videoController;
+  Timer? _fallbackTimer;
   bool _isInitialized = false;
   bool _hasNavigated = false;
   double _opacity = 1.0;
@@ -57,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen> {
         });
       }
     } catch (e) {
-      Timer(const Duration(milliseconds: 2500), _navigateToLogin);
+      _fallbackTimer = Timer(const Duration(milliseconds: 2500), _navigateToLogin);
     }
   }
 
@@ -79,6 +80,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   void dispose() {
+    _fallbackTimer?.cancel();
     _videoController.dispose();
     super.dispose();
   }
